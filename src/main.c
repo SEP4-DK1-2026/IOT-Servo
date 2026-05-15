@@ -1,16 +1,15 @@
 /*****************************************************************************
  * main.c
- *  Main application file for the IoT hardware drivers demo.
- *  This file initializes all the hardware drivers and demonstrates their
- *  functionality.
- *  Push button 2 on the shield during reset to enter continious sensor
- *  reading mode. Otherwise the program will run an interactive demo that
- *  allows you to test each driver individually by sending commands over UART.
- *  See interactive.c for details.
+ *  Main application file for the windowopener.
+ *  This file delegates different actions, to different files.
+ *  Push button 1 to increment the wanted outside temperature before the window
+ *  should open, and button 2 for decrementing.
+ *  It recieves weather information from an Azure Serverless Function, which
+ *  gets the information from the databases.
  *
- *  Author:  Erland Larsen
- *  Date:    2026-03-17
- *  Project: SPE4_API
+ *  Author:  Jonas Schwartz & Benjamin Hansen
+ *  Date:    2026-05-15
+ *  Project: SEP4-DK1-2026/IOT-Servo
  *****************************************************************************/
 #include <avr/io.h>
 #include <util/delay.h>
@@ -43,7 +42,7 @@ int main(void)
     servodriver_init();
 
     float wantedTemperature = 0;
-    bool hasRained = false;
+    bool goingToRain = false;
     float temp = 0;
 
     bool turnedOn = true;
@@ -66,7 +65,7 @@ while (1)
             wantedTemperature--;
         }
 
-        servodriver_change(temp, hasRained, wantedTemperature);
+        servodriver_change(temp, goingToRain, wantedTemperature);
     }
 
     if (button3 && !lastButton3)

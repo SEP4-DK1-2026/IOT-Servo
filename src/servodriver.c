@@ -1,3 +1,11 @@
+/***************************************************
+ * servodriver.c
+ *  Servo implementation for closing and opening a window
+ *  Author:  Benjamin Hansen
+ *  Date:    2026-05-15
+ *  Project: SEP4-DK1-2026/IOT-Servo
+ **************************************************/
+
 #include "servodriver.h"
 #include "windowopener.h"
 
@@ -13,8 +21,8 @@ void servodriver_init(){
     servo_start();
 }
 
-void servodriver_change(float temp, bool hasRained, float wantedTemp){
-    if(shouldOpen(temp, hasRained, wantedTemp)) {
+void servodriver_change(float temp, bool goingToRain, float wantedTemp){
+    if(shouldOpen(temp, goingToRain, wantedTemp)) {
         servo_setAngle(PWM_A, 45);
         servo_setAngle(PWM_B, 45);
     }
