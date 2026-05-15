@@ -16,58 +16,68 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <stdio.h>
-#include "interactive.h"
 #include "button.h"
 #include "uart_stdio.h"
 #include "led.h"
-#include "pir.h"
 #include "display.h"
 #include "wifi.h"
 #include "button.h"
 #include "buzzer.h"
-#include "dht11.h"
-#include "proximity.h"
 #include "servo.h"
 #include "adc.h"
-#include "light.h"
-#include "soil.h"
 #include "tone.h"
 #include "timer.h"
-// #include "adxl345.h"
+#include "network.h"
 
 int main(void)
 {
     sei();
+    uart_stdio_init(115200);
 
     led_init();
     button_init();
     display_init();
-    proximity_init();
-    light_init();
-    soil_init(ADC_PK0);
-    pir_init(pir_callback);
-    //    tone_init();
     wifi_init();
+    network_init();
     servo_init(PWM_NORMAL);
-    //    adxl345_init();
     servo_start();
 
-    while (1)
+    bool rain = false;
+    float temp = 0.0f;
+
+    // 3 forsøg på at checke efter vejret  med 5000 ms timeout fuck dig nigga
+    if (network_check_weather(&rain, &temp, 3, 5000))
     {
-        if (button_get(1))
+        printf("[WEATHER] rain=%d temp=%.2f\n", rain ? 1 : 0, temp);
+
+        if (rain)
         {
+            // Eksempel: sæt servo til parkeringsposition ved regn
             servo_setAngle(PWM_A, 90);
-            servo_setAngle(PWM_B, 90);
         }
-        else if (button_get(2))
+        else
         {
-            servo_setAngle(PWM_A, -90);
-            servo_setAngle(PWM_B, -90);
+            // Normal position
+            servo_setAngle(PWM_A, 0);
         }
-        else if (button_get(3))
+        if (temp < 10.0f)
+        {
+            printf("Temp below 10 degrees");
+            servo_setAngle(PWM_A, 90);
+        }
+        else if (temp > 15.0f)
+        {
+            printf("temp above 15");
+            servo_setAngle(PWM_A, 45);
+        }
+        else
         {
             servo_setAngle(PWM_A, 0);
-            servo_setAngle(PWM_B, 0);
         }
+    }
+    else
+    {
+        printf("[WEATHER] check failed after retries\n");
+        // fallback handling (ingen ændring eller sikker tilstand)
     }
 }
