@@ -16,58 +16,69 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <stdio.h>
-#include "interactive.h"
 #include "button.h"
 #include "uart_stdio.h"
 #include "led.h"
-#include "pir.h"
 #include "display.h"
 #include "wifi.h"
 #include "button.h"
 #include "buzzer.h"
-#include "dht11.h"
-#include "proximity.h"
 #include "servo.h"
 #include "adc.h"
-#include "light.h"
-#include "soil.h"
 #include "tone.h"
 #include "timer.h"
 // #include "adxl345.h"
+
+#include "servodriver.h"
+#include "stdbool.h"
 
 int main(void)
 {
     sei();
 
-    led_init();
+    wifi_init();
     button_init();
     display_init();
-    proximity_init();
-    light_init();
-    soil_init(ADC_PK0);
-    pir_init(pir_callback);
-    //    tone_init();
-    wifi_init();
-    servo_init(PWM_NORMAL);
-    //    adxl345_init();
-    servo_start();
 
-    while (1)
-    {
-        if (button_get(1))
-        {
-            servo_setAngle(PWM_A, 90);
-            servo_setAngle(PWM_B, 90);
+    servodriver_init();
+
+    float wantedTemperature = 0;
+    bool hasRained = false;
+    float temp = 0;
+
+    bool turnedOn = true;
+    bool lastButton1 = false;
+    bool lastButton2 = false;
+    bool lastButton3 = false;
+
+while (1)
+{
+    bool button1 = button_get(1);
+    bool button2 = button_get(2);
+    bool button3 = button_get(3);
+
+    if(turnedOn){
+        if (button1 && !lastButton1) {
+            wantedTemperature++;
         }
-        else if (button_get(2))
-        {
-            servo_setAngle(PWM_A, -90);
-            servo_setAngle(PWM_B, -90);
+
+        if (button2 && !lastButton2) {
+            wantedTemperature--;
         }
-        else if (button_get(3))
-        {
-            servo_setAngle(PWM_A, 0);
-            servo_setAngle(PWM_B, 0);
-        }
+
+        servodriver_change(temp, hasRained, wantedTemperature);
     }
+
+    if (button3 && !lastButton3)
+    {
+        turnedOn = !turnedOn;
+        servodriver_reset();
+    }
+
+    lastButton1 = button1;
+    lastButton2 = button2;
+    lastButton3 = button3;
+
+    turnedOn ? display_int(wantedTemperature) : display_setValues(16, 16, 16, 16);
+}
 }
