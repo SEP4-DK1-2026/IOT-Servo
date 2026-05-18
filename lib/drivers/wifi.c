@@ -72,7 +72,8 @@ WIFI_ERROR_MESSAGE_t wifi_command(const char *str, uint16_t timeout_s)
         error = WIFI_ERROR_NOT_RECEIVING;
     else if (strstr((char *)wifi_dataBuffer, "OK") != NULL)
         error = WIFI_OK;
-    else if (strstr((char *)wifi_dataBuffer, "ERROR") != NULL){
+    else if (strstr((char *)wifi_dataBuffer, "ERROR") != NULL)
+    {
         error = WIFI_ERROR_RECEIVED_ERROR;
     }
     else if (strstr((char *)wifi_dataBuffer, "FAIL") != NULL)
@@ -183,13 +184,15 @@ static void wifi_TCP_callback(uint8_t byte)
 
         if (index == length)
         {
-            received_message_buffer_static_pointer[index] = '\0';
+            // IKKE nul-terminering her - lad dataen akkumulere
+            // received_message_buffer_static_pointer[index] = '\0';
 
+            // Callback skal bare signalere at der kom data, ikke at det er færdigt
             callback_when_message_received_static();
 
             state = IDLE;
             length = 0;
-            //index = 0; ikke nulstil index gg nigger
+            // index skal IKKE nulstilles - next +IPD appends efter denne data
         }
         break;
     }
@@ -208,7 +211,6 @@ WIFI_ERROR_MESSAGE_t wifi_command_create_TCP_connection(
     char cmd[256];
     sprintf(cmd, "AT+CIPSTART=\"TCP\",\"%s\",%u", IP, port);
 
-    
     WIFI_ERROR_MESSAGE_t err = wifi_command(cmd, 10);
 
     if (err != WIFI_OK)
