@@ -53,7 +53,7 @@ int main(void)
         if (rain)
         {
             // Eksempel: sæt servo til parkeringsposition ved regn
-            servo_setAngle(PWM_A, 90);
+            servo_setAngle(PWM_A, 90);  
         }
         else
         {

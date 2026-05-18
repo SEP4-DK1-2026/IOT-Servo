@@ -16,6 +16,11 @@ static void tcp_callback(void)
     tcp_received = true;
 }
 
+static uint16_t tcp_rx_length(void)
+{
+    return (uint16_t)strlen(tcp_rx_buffer);
+}
+
 // ================= INIT =================
 void network_init(void)
 {
@@ -119,10 +124,13 @@ bool network_check_weather(bool *out_rainNextHour,
     if (!out_rainNextHour || !out_temperature)
         return false;
 
-    char request[512];
+     char request[512];
     sprintf(request,
             "GET /api/ServoFunctionContainerWebApp HTTP/1.1\r\n"
             "Host: iot-servofunctionapp-htbgfgatcpf9asch.swedencentral-01.azurewebsites.net\r\n"
+            "Accept: application/json\r\n"
+            "User-Agent: PostmanRuntime/7.43.0\r\n"
+            "Accept-Encoding: identity\r\n"
             "Connection: close\r\n"
             "\r\n");
 
@@ -150,45 +158,74 @@ bool network_check_weather(bool *out_rainNextHour,
             continue;
         }
 
-        // Wait for response up to timeout_ms
+        // Wait for response up to timeout_ms, and require the buffer to stop growing
         uint32_t waited = 0;
         const uint32_t poll_ms = 100;
-        
-        while (!tcp_received && waited < timeout_ms)
+        uint16_t last_len = 0;
+        uint32_t stable_ms = 0;
+
+        while (waited < timeout_ms)
         {
+            uint16_t len = tcp_rx_length();
+
+            if (len > 0)
+            {
+                tcp_received = true;
+            }
+
+            if (len > 0 && len == last_len)
+            {
+                stable_ms += poll_ms;
+            }
+            else
+            {
+                stable_ms = 0;
+            }
+
+            last_len = len;
+
+            if (tcp_received && stable_ms >= 300)
+            {
+                break;
+            }
+
             _delay_ms(poll_ms);
             waited += poll_ms;
         }
 
-        if (!tcp_received)
+        if (tcp_rx_length() == 0)
         {
-            printf("[NETWORK] No response on attempt %d (timeout %lu ms)\n", attempt, (unsigned long)timeout_ms);
+            printf("[NETWORK] No response on attempt %d (timeout %lu ms)\n",
+                   attempt, (unsigned long)timeout_ms);
             wifi_command_close_TCP_connection();
             _delay_ms(200);
             continue;
         }
 
-        // Response received, extract body
-        const char *body = strstr(tcp_rx_buffer, "\r\n\r\n");
-        body = body ? body + 4 : NULL;
-        if (!body)
-        {
-            printf("[NETWORK] No HTTP body found on attempt %d\n", attempt);
-            wifi_command_close_TCP_connection();
-            _delay_ms(200);
-            continue;
-        }
+        // Sikr nul-terminering efter at bufferen er stabil
+        tcp_rx_buffer[tcp_rx_length()] = '\0';
 
         // DEBUG: Se hvad der kommer tilbage
         printf("[NETWORK] Raw buffer: %s\n", tcp_rx_buffer);
-        printf("[NETWORK] Body content: %s\n", body);
-        // Parse expected JSON fields
-        bool parsed_ok = true;
-        if (!json_parse_bool(body, "\"rainNextHour\"", out_rainNextHour))
-            parsed_ok = false;
-        if (!json_parse_float(body, "\"temperature\"", out_temperature))
-            *out_temperature = 0.0f; // not fatal
+        printf("[NETWORK] Buffer length: %u bytes\n", tcp_rx_length());
 
+                // FIND JSON START DIREKTE
+        const char *json_start = strchr(tcp_rx_buffer, '{');
+        if (!json_start)
+        {
+            printf("[NETWORK] No JSON object found\n");
+            wifi_command_close_TCP_connection();
+            _delay_ms(200);
+            continue;
+        }
+
+        printf("[NETWORK] JSON: %s\n", json_start);
+
+        bool parsed_ok = true;
+        if (!json_parse_bool(json_start, "\"rainNextHour\"", out_rainNextHour))
+            parsed_ok = false;
+        if (!json_parse_float(json_start, "\"temperature\"", out_temperature))
+            *out_temperature = 0.0f;
         wifi_command_close_TCP_connection();
 
         if (parsed_ok)
