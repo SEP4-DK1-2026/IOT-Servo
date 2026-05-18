@@ -17,34 +17,34 @@
 #include <stdio.h>
 #include "button.h"
 #include "uart_stdio.h"
-#include "led.h"
 #include "display.h"
 #include "wifi.h"
 #include "button.h"
-#include "buzzer.h"
 #include "servo.h"
 #include "adc.h"
-#include "tone.h"
 #include "timer.h"
 #include "network.h"
 
 #include "servodriver.h"
 #include "stdbool.h"
+#include "sleep_timer.h"
 
 int main(void)
 {
     sei();
+    sleep_timer_init();
     uart_stdio_init(115200);
 
     wifi_init();
     network_init();
     button_init();
     display_init();
+    _delay_ms(200);
     servodriver_init();
   
     float wantedTemperature = 0;
     bool rain = false;
-    float temp = 0.0f;
+    float temp = 0;
 
     bool turnedOn = true;
     bool lastButton1 = false;
@@ -52,9 +52,18 @@ int main(void)
     bool lastButton3 = false;
   
     while(1) {
+
       bool button1 = button_get(1);
       bool button2 = button_get(2);
       bool button3 = button_get(3);
+
+      if (wakeups >= 397)
+    {
+        wakeups = 0;
+        turnedOn ? display_setValues(8, 8, 8, 8) : display_setValues(16, 16, 16, 16);
+        network_check_weather(&rain, &temp, 3, 5000);
+        turnedOn ? display_int(wantedTemperature) : display_setValues(16, 16, 16, 16);
+    } 
       
       if(turnedOn){
         if (button1 && !lastButton1) {
@@ -64,8 +73,6 @@ int main(void)
         if (button2 && !lastButton2) {
             wantedTemperature--;
         }
-        
-        network_check_weather(&rain, &temp, 3, 5000);
 
         servodriver_change(temp, rain, wantedTemperature);
       }
@@ -80,5 +87,7 @@ int main(void)
       lastButton3 = button3;
       
       turnedOn ? display_int(wantedTemperature) : display_setValues(16, 16, 16, 16);
+
+      sleep_interval();
     }
 }

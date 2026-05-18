@@ -27,29 +27,12 @@ void sleep_timer_init(void)
     WDTCSR = (1 << WDIE) | (1 << WDP3) | (1<<WDP0);
 }
 
-static void uart0_wait_tx_complete(void)
-{
-    fflush(stdout);
-    while (!(UCSR0A & (1 << TXC0))) { }
-    UCSR0A |= (1 << TXC0);
-}
-
-
 void sleep_interval(void)
 {
-    wakeups = 0;
+    set_sleep_mode(SLEEP_MODE_IDLE);
+    sleep_enable();
 
-    while (wakeups != 397) // 397 * 8 sek = 3176 sek = ca 53 min ogås fordi vores 
-    // program køre andre ting 
-    // i baggrunden tager det ca 13% mere tid at løbe watchdog timeren
-    {
-        printf("[SLEEP] Entering low-power mode (cycle %u/112)\n", wakeups);
-        uart0_wait_tx_complete();
+    sleep_mode();   
 
-        set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-        sleep_enable();
-        sleep_mode(); // Slukker CPU
-        // Disabler sleep, så man kan vække den igen.
-        sleep_disable();
-    }
+    sleep_disable();
 }

@@ -96,7 +96,7 @@ static bool json_parse_bool(const char *buf, const char *key, bool *out)
     return false;
 }
 
-// Float parser (temperatur er en float gg nigger)
+// Float parser
 static bool json_parse_float(const char *buf, const char *key, float *out)
 {
     const char *p = json_find_key_value(buf, key);
@@ -142,7 +142,6 @@ bool network_check_weather(bool *out_rainNextHour,
         // Create TCP connection on port 80 (plain TCP)
         if (wifi_command_create_TCP_connection("51.12.31.5", 80, tcp_callback, tcp_rx_buffer) != WIFI_OK)
         {
-            printf("[NETWORK] TCP connect attempt %d failed\n", attempt);
             _delay_ms(500);
             continue;
         }
@@ -152,7 +151,6 @@ bool network_check_weather(bool *out_rainNextHour,
         // Send request
         if (wifi_command_TCP_transmit((uint8_t *)request, strlen(request)) != WIFI_OK)
         {
-            printf("[NETWORK] TCP transmit attempt %d failed\n", attempt);
             wifi_command_close_TCP_connection();
             _delay_ms(200);
             continue;
@@ -195,8 +193,6 @@ bool network_check_weather(bool *out_rainNextHour,
 
         if (tcp_rx_length() == 0)
         {
-            printf("[NETWORK] No response on attempt %d (timeout %lu ms)\n",
-                   attempt, (unsigned long)timeout_ms);
             wifi_command_close_TCP_connection();
             _delay_ms(200);
             continue;
@@ -205,21 +201,14 @@ bool network_check_weather(bool *out_rainNextHour,
         // Sikr nul-terminering efter at bufferen er stabil
         tcp_rx_buffer[tcp_rx_length()] = '\0';
 
-        // DEBUG: Se hvad der kommer tilbage
-        printf("[NETWORK] Raw buffer: %s\n", tcp_rx_buffer);
-        printf("[NETWORK] Buffer length: %u bytes\n", tcp_rx_length());
-
                 // FIND JSON START DIREKTE
         const char *json_start = strchr(tcp_rx_buffer, '{');
         if (!json_start)
         {
-            printf("[NETWORK] No JSON object found\n");
             wifi_command_close_TCP_connection();
             _delay_ms(200);
             continue;
         }
-
-        printf("[NETWORK] JSON: %s\n", json_start);
 
         bool parsed_ok = true;
         if (!json_parse_bool(json_start, "\"rainNextHour\"", out_rainNextHour))
@@ -234,7 +223,6 @@ bool network_check_weather(bool *out_rainNextHour,
         }
         else
         {
-            printf("[NETWORK] JSON parse failed on attempt %d\n", attempt);
             _delay_ms(200);
             continue;
         }
