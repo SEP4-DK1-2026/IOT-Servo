@@ -1,5 +1,5 @@
 /***************************************************
- * servodriver.h
+ * servoimpl.h
  *  Servo interface for closing and opening a window
  *  Author:  Benjamin Hansen
  *  Date:    2026-05-15
