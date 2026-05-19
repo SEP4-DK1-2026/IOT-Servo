@@ -25,7 +25,7 @@
 #include "timer.h"
 #include "network.h"
 
-#include "servodriver.h"
+#include "servoimpl.h"
 #include "stdbool.h"
 #include "sleep_timer.h"
 
@@ -58,12 +58,12 @@ int main(void)
       bool button3 = button_get(3);
 
       if (wakeups >= 397)
-    {
+        {
         wakeups = 0;
         turnedOn ? display_setValues(8, 8, 8, 8) : display_setValues(16, 16, 16, 16);
         network_check_weather(&rain, &temp, 3, 5000);
         turnedOn ? display_int(wantedTemperature) : display_setValues(16, 16, 16, 16);
-    } 
+        } 
       
       if(turnedOn){
         if (button1 && !lastButton1) {
