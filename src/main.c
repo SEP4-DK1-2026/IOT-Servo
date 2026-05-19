@@ -50,6 +50,8 @@ int main(void)
     bool lastButton1 = false;
     bool lastButton2 = false;
     bool lastButton3 = false;
+
+    network_check_weather(&rain, &temp, 3, 5000);
   
     while(1) {
 

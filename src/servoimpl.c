@@ -23,16 +23,16 @@ void servodriver_init(){
 
 void servodriver_change(float temp, bool goingToRain, float wantedTemp){
     if(shouldOpen(temp, goingToRain, wantedTemp)) {
-        servo_setAngle(PWM_A, 90);
-        servo_setAngle(PWM_B, 90);
-    }
-    else {
         servo_setAngle(PWM_A, 0);
         servo_setAngle(PWM_B, 0);
+    }
+    else {
+        servo_setAngle(PWM_A, 90);
+        servo_setAngle(PWM_B, 90);
     }
 }
 
 void servodriver_reset() {
-    servo_setAngle(PWM_A, 0);
-    servo_setAngle(PWM_B, 0);
+    servo_setAngle(PWM_A, 90);
+    servo_setAngle(PWM_B, 90);
 }
